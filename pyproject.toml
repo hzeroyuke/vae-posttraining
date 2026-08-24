@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vqvae-gptxl-scaling"
+version = "0.1.0"
+description = "ImageNet LlamaGen GPT-XL class-conditional training and evaluation."
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+SESSION="${IMAGENET_TMUX_SESSION:-llamagen_imagenet_xl}"
+ROOT="${IMAGENET_EXPERIMENT_ROOT:-$PROJECT_ROOT/outputs/imagenet_xl_384}"
+mkdir -p "$ROOT"
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  echo "tmux session already exists: $SESSION"
+  exit 0
+fi
+DATA_ROOT="${IMAGENET_PARQUET_ROOT:-$PROJECT_ROOT/data/imagenet-1k}"
+CODE_WORKERS="${IMAGENET_CODE_WORKERS:-2}"
+CODE_PART_BATCHES="${IMAGENET_CODE_PART_BATCHES:-256}"
+CODE_BATCH="${IMAGENET_CODE_BATCH_SIZE:-4}"
+CODE_GPUS="${IMAGENET_CODE_GPUS:-1,3}"
+REWARD_CODE_GPUS="${IMAGENET_REWARD_CODE_GPUS:-4,5,7}"
+BASE_CODE_BATCH="${IMAGENET_BASE_CODE_BATCH_SIZE:-4}"
+REWARD_CODE_BATCH="${IMAGENET_REWARD_CODE_BATCH_SIZE:-4}"
+tmux new-session -d -s "$SESSION" \
+  "export IMAGENET_EXPERIMENT_ROOT='$ROOT' IMAGENET_PARQUET_ROOT='$DATA_ROOT' IMAGENET_CODE_WORKERS='$CODE_WORKERS' IMAGENET_CODE_PART_BATCHES='$CODE_PART_BATCHES' IMAGENET_CODE_GPUS='$CODE_GPUS' IMAGENET_REWARD_CODE_GPUS='$REWARD_CODE_GPUS' IMAGENET_BASE_CODE_BATCH_SIZE='$BASE_CODE_BATCH' IMAGENET_REWARD_CODE_BATCH_SIZE='$REWARD_CODE_BATCH'; bash scripts/01_prepare_imagenet_xl_assets.sh > '$ROOT/prepare_tmux.log' 2>&1 && bash scripts/02_train_imagenet_xl.sh > '$ROOT/train_tmux.log' 2>&1"
+echo "Started $SESSION; inspect with: tmux attach -t $SESSION"
