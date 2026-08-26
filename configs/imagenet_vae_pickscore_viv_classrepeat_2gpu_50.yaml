@@ -1,0 +1,72 @@
+seed: 6421
+output_dir: /mnt/data/zyk/vae_posttraining/runs/imagenet_vae_pickscore_viv_classrepeat_2gpu_25
+data:
+  backend: imagenet_parquet
+  root: /home/zhaoyuke/datasets/imagenet-1k
+  val_root: /mnt/data/heyefei/hub/cutedataset/imagenet-1k
+  class_names_path: /home/zhaoyuke/datasets/imagenet-1k/classes.py
+  num_classes: 1000
+  image_size: 256
+  batch_size: 2
+  eval_batch_size: 1
+  num_workers: 0
+  train_subset: 1281167
+  val_subset: 64
+  viv_reference_batch_size: 2
+model:
+  checkpoint: /home/zhaoyuke/.cache/vae_posttraining/models/stabilityai/sd-vae-ft-mse
+  scaling_factor: 0.18215
+reward:
+  processor_path: /home/zhaoyuke/.cache/vae_posttraining/models/laion/CLIP-ViT-H-14-laion2B-s32B-b79K
+  model_path: /home/zhaoyuke/.cache/vae_posttraining/models/yuvalkirstain/PickScore_v1
+  batch_size: 4
+train:
+  steps: 25
+  group_size: 2
+  gradient_accumulation_steps: 1
+  rho: 0.10
+  min_sigma: 0.001
+  stats_batches: 4
+  reconstruction_mode: mean
+  behavior_decoder_grad: false
+  behavior_decode_chunk_size: 2
+  lr: 0.000001
+  encoder_lr: 0.000002
+  decoder_lr: 0.0000002
+  weight_decay: 0.01
+  max_encoder_grad_norm: 1.0
+  max_decoder_grad_norm: 1.0
+  policy_reduction: sum
+  policy_noise_size: 4
+  antithetic_exploration: true
+  lambda_grpo: 2.0
+  beta_policy: 0.01
+  lambda_l1: 1.0
+  lambda_lpips: 0.0
+  lambda_prior: 0.000001
+  lambda_post: 0.0001
+  lambda_dec_anchor: 0.0
+  recon_penalty: 5.0
+  lpips_recon_penalty: 0.0
+  recon_l1_threshold: 0.10
+  recon_lpips_threshold: 0.18
+  lambda_viv: 20.0
+  viv_class_conditional: true
+  viv_class_balanced_batches: true
+  viv_class_repeat_batches: 4
+  viv_reference_class_balanced: true
+  viv_target_ratio: 0.75
+  lambda_viv_var_anchor: 0.05
+  viv_buffer_size: 8
+  viv_min_samples: 2
+  viv_reference_batches: 32
+  viv_eps: 0.000001
+  use_lpips: false
+  eval_every: 25
+  eval_batches: 4
+  save_every: 25
+wandb:
+  enabled: true
+  entity: yukezhao37-zhejiang-university
+  project: vae-posttraining-imagenet-viv
+  name: imagenet-vae-pickscore-viv-classrepeat-2gpu-25

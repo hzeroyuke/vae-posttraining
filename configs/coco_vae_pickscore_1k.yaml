@@ -1,0 +1,48 @@
+seed: 6101
+output_dir: /mnt/data/zyk/vae_posttraining/runs/coco_vae_grpo_main_1k
+
+data:
+  root: /mnt/data/zyk/datasets/coco
+  image_size: 256
+  batch_size: 1
+  eval_batch_size: 2
+  num_workers: 4
+  train_subset: 80000
+  val_subset: 96
+
+model:
+  checkpoint: /mnt/data/zyk/hf_models/stabilityai/sd-vae-ft-mse
+  scaling_factor: 0.18215
+
+reward:
+  processor_path: /mnt/data/zyk/hf_models/laion/CLIP-ViT-H-14-laion2B-s32B-b79K
+  model_path: /mnt/data/zyk/hf_models/yuvalkirstain/PickScore_v1
+  batch_size: 4
+
+train:
+  steps: 1000
+  group_size: 4
+  rho: 0.20
+  min_sigma: 0.001
+  stats_batches: 16
+  lr: 0.000001
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  lambda_grpo: 10.0
+  beta_policy: 0.01
+  lambda_l1: 1.0
+  lambda_lpips: 0.1
+  lambda_prior: 0.000001
+  lambda_post: 0.0000001
+  lambda_dec_anchor: 0.5
+  recon_penalty: 5.0
+  use_lpips: true
+  eval_every: 100
+  eval_batches: 24
+  save_every: 100
+
+wandb:
+  enabled: true
+  entity: yukezhao37-zhejiang-university
+  project: vae-posttraining-pickscore
+  name: coco-vae-grpo-main-1k
