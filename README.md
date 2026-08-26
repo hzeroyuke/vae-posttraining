@@ -90,7 +90,12 @@ Download the upstream LlamaGen source and official checkpoints from these locati
 
 - [FoundationVision/LlamaGen](https://github.com/FoundationVision/LlamaGen): upstream model and sampling code;
 - [official VQ-16 checkpoint](https://huggingface.co/FoundationVision/LlamaGen/resolve/main/vq_ds16_c2i.pt): set this file as OFFICIAL_VQ;
+- [reward VQ-16 checkpoint](https://huggingface.co/hzeroyuke/vae-posttraining/blob/main/reward_vae_vq_ds16_c2i_seed3101_step1000.pt): use this file as the GPT-B reward tokenizer;
 - [published LlamaGen-XL checkpoint](https://huggingface.co/FoundationVision/LlamaGen/resolve/main/c2i_XL_384.pt): optional for inference/reference only, not required for this repository's from-scratch GPT-XL training.
+
+The GPT-B reward experiment trains the prior from scratch, so no pretrained GPT-B
+checkpoint is required. The complete download, code extraction, and training sequence
+is documented in [docs/GPTB_REWARD_TRAINING.md](docs/GPTB_REWARD_TRAINING.md).
 
 For example, download the official VAE on a new machine with:
 
@@ -137,6 +142,29 @@ bash scripts/02_train_imagenet_xl.sh
 Stage 1 extracts both crop ranges for both tokenizers, combines them into
 codes/{official,reward}, and writes corpus audits. Stage 2 starts the matched
 official and reward GPT-XL jobs and writes an initial step-0 checkpoint for comparison.
+
+To train a single GPT-B c2i prior on an existing ImageNet code corpus, use the
+multi-GPU launcher below. It defaults to the same 384px/576-token geometry as the
+GPT-XL experiment; set `IMAGENET_GPTB_IMAGE_SIZE=256` for a 256px corpus. The code
+directory must contain `codes.npy`, `labels.npy`, and `manifest.json`.
+
+```bash
+VQVAE_ENV_ROOT=/path/to/cuda-environment \
+IMAGENET_GPTB_CODE_PATH=/path/to/imagenet_codes \
+IMAGENET_GPTB_GPUS=0,1,2,3 \
+IMAGENET_GPTB_OUTPUT_ROOT=/path/to/runs/imagenet_gptb_384 \
+bash scripts/train_imagenet_gptb.sh
+```
+
+The script uses GPT-B (about 111M parameters), `vocab_size=16384`, c2i conditioning,
+BF16, and NCCL DDP. `VQVAE_ENV_ROOT` is optional when the repository has its own
+`.venv` or `.conda-env`; it selects a cluster-managed CUDA environment otherwise.
+For a bounded smoke test, set `IMAGENET_GPTB_MAX_STEPS=2` and use a separate output
+directory.
+
+For the complete new-machine procedure that downloads the reward VAE, prepares the
+ImageNet parquet code corpus, and trains GPT-B on reward codes, see
+[docs/GPTB_REWARD_TRAINING.md](docs/GPTB_REWARD_TRAINING.md).
 
 For a long run in a detached tmux session:
 
@@ -234,6 +262,8 @@ $IMAGENET_EXPERIMENT_ROOT/
 - scripts/01_prepare_imagenet_xl_assets.sh: ImageNet encoding, dual-crop merge, and corpus audit;
 - scripts/02_train_imagenet_xl.sh: paired GPT-XL training launcher;
 - scripts/train_imagenet_xl_one.sh: single-run training and checkpoint resume;
+- scripts/train_imagenet_gptb.sh: configurable multi-GPU GPT-B c2i training launcher;
+- docs/GPTB_REWARD_TRAINING.md: end-to-end Reward VAE to GPT-B reproduction guide;
 - scripts/monitor_imagenet_xl_training.sh: training monitoring, recovery, and final evaluation scheduling;
 - scripts/evaluate_imagenet_xl_c2i.sh: sampling and FID metric calculation;
 - third_party/LlamaGen/: minimal vendored LlamaGen dependency and ImageNet data implementation.

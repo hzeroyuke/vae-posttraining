@@ -81,7 +81,11 @@ export WANDB_PROJECT=llamagen-imagenet-xl
 
 - [FoundationVision/LlamaGen](https://github.com/FoundationVision/LlamaGen)：上游模型和采样代码；
 - [官方 VQ-16 checkpoint](https://huggingface.co/FoundationVision/LlamaGen/resolve/main/vq_ds16_c2i.pt)：下载后设置为 OFFICIAL_VQ；
+- [Reward VQ-16 checkpoint](https://huggingface.co/hzeroyuke/vae-posttraining/blob/main/reward_vae_vq_ds16_c2i_seed3101_step1000.pt)：GPT-B Reward 实验使用此文件；
 - [已发布的 LlamaGen-XL checkpoint](https://huggingface.co/FoundationVision/LlamaGen/resolve/main/c2i_XL_384.pt)：只用于推理或结果参考，本仓库从头训练 GPT-XL 时不需要它。
+
+GPT-B Reward 实验会从零训练 prior，不需要下载预训练 GPT-B checkpoint。完整的下载、
+code 提取和训练步骤见 [docs/GPTB_REWARD_TRAINING_zh.md](docs/GPTB_REWARD_TRAINING_zh.md)。
 
 例如，在新机器上可以这样下载官方 VAE：
 
@@ -118,6 +122,28 @@ bash scripts/02_train_imagenet_xl.sh
 
 第一阶段为两个 tokenizer 提取两种 crop range，合并为 codes/{official,reward}，并写入数据审计文件。
 第二阶段同时启动 official 和 reward 两个匹配的 GPT-XL 训练，并保存 step-0 初始 checkpoint 供比较。
+
+如果要在已有的 ImageNet code corpus 上训练单路 GPT-B c2i 先验，使用下面的多卡脚本。
+脚本默认采用与 GPT-XL 实验相同的 384px/576-token 几何配置；如果 code corpus 是
+256px 编码，可以设置 `IMAGENET_GPTB_IMAGE_SIZE=256`。code 目录必须已经包含
+`codes.npy`、`labels.npy` 和 `manifest.json`。
+
+```bash
+VQVAE_ENV_ROOT=/path/to/cuda-environment \
+IMAGENET_GPTB_CODE_PATH=/path/to/imagenet_codes \
+IMAGENET_GPTB_GPUS=0,1,2,3 \
+IMAGENET_GPTB_OUTPUT_ROOT=/path/to/runs/imagenet_gptb_384 \
+bash scripts/train_imagenet_gptb.sh
+```
+
+脚本使用 GPT-B（约 1.11 亿参数）、`vocab_size=16384`、c2i 条件、BF16 和 NCCL DDP。
+如果仓库内已有 `.venv` 或 `.conda-env`，则 `VQVAE_ENV_ROOT` 可以省略；在集群统一管理
+CUDA 环境时，可以用它指定外部环境。冒烟测试可设置 `IMAGENET_GPTB_MAX_STEPS=2`，
+并使用独立的输出目录。
+
+从另一台机器下载 Reward VAE、准备 ImageNet parquet code corpus，并在 Reward code
+上训练 GPT-B 的完整流程见
+[docs/GPTB_REWARD_TRAINING_zh.md](docs/GPTB_REWARD_TRAINING_zh.md)。
 
 长时间运行可以放在 tmux 中：
 
@@ -196,6 +222,8 @@ $IMAGENET_EXPERIMENT_ROOT/evaluation/c2i_00078000_fid50000/summary.json
 - scripts/01_prepare_imagenet_xl_assets.sh：ImageNet 编码、双 crop 合并和 corpus audit；
 - scripts/02_train_imagenet_xl.sh：启动两路 GPT-XL 训练；
 - scripts/train_imagenet_xl_one.sh：单路训练或 checkpoint 恢复；
+- scripts/train_imagenet_gptb.sh：可配置的多卡 GPT-B c2i 训练脚本；
+- docs/GPTB_REWARD_TRAINING_zh.md：从 Reward VAE 到 GPT-B 的完整复现实验指南；
 - scripts/monitor_imagenet_xl_training.sh：训练监控、恢复和最终评估调度；
 - scripts/evaluate_imagenet_xl_c2i.sh：采样和 FID 指标计算；
 - third_party/LlamaGen/：保留许可证的最小 LlamaGen 依赖和 ImageNet 数据实现。
